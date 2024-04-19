@@ -1,0 +1,3 @@
+- cloner le projet
+- installer le Dataset https://www.kaggle.com/datasets/benoitfavier/immobilier-france
+- copier les fichiers dans le Dossier Dataset
