@@ -1,83 +1,93 @@
-# import numpy as np
+import numpy as np
 import pandas as pd
-import tensorflow as tf
-from tensorflow import keras
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+from sklearn.impute import SimpleImputer
 
+test =  False
 
 def getDataFrame():
-  # arrays = dict(np.load(self.file))
-  # data = {k: [s.decode("utf-8") for s in v.tobytes().split(b"\x00")] if v.dtype == np.uint8 else v for k, v in arrays.items()}
-  # return self.preprocessDf(pd.DataFrame.from_dict(data))
-  return preprocessDf(pd.read_csv("./DataSets/transactions_sample.csv"))
-
+    arrays = dict(np.load("./DataSets/transactions.npz"))
+    data = {k: [s.decode("utf-8") for s in v.tobytes().split(b"\x00")] if v.dtype == np.uint8 else v for k, v in arrays.items()}
+    return preprocessDf(pd.DataFrame.from_dict(data))
+    
+def getTestDf():
+     return preprocessDf(pd.read_csv("./DataSets/transactions_sample.csv"))
 
 def preprocessDf(df):
-  df = df.drop(columns=["id_transaction", "date_transaction", "id_ville", "vefa", 
-    'id_parcelle_cadastre', 'latitude', 'longitude',
-    'surface_dependances', 'surface_locaux_industriels',
-    'surface_terrains_agricoles', 'surface_terrains_sols',
-    'surface_terrains_nature'])
-  df = df.dropna()
-  df = df.drop_duplicates()
-  return df
+    drop_cols = ["id_transaction", "id_ville", "vefa", 
+                 'id_parcelle_cadastre', 'latitude', 'longitude',
+                 'surface_dependances', 'surface_locaux_industriels',
+                 'surface_terrains_agricoles', 'surface_terrains_sols',
+                 'surface_terrains_nature', 'adresse']
+    df = df.drop(columns=drop_cols)
+    df.dropna()
+    df.drop_duplicates()
+    df = df[df['date_transaction'] > '2023-06-29']
+    return df
 
-df = getDataFrame()
+df = getTestDf() if test else getDataFrame()
 
-X = df[df.columns]
+print(df.tail())
+print(len(df))
+
+
+X = df.drop(columns=['prix','date_transaction'])  
 y = df['prix']
 
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-categorical_features = ['Departement', 'Ville', 'Type_batiment']
+categorical_features = ['departement', 'ville', 'code_postal', 'type_batiment']
 categorical_transformer = OneHotEncoder(handle_unknown='ignore')
 
+# Préprocesseur
 numeric_features = ['n_pieces', 'surface_habitable']
-numeric_transformer = StandardScaler()
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
 
+categorical_features = ['departement', 'ville', 'code_postal', 'type_batiment']
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+# Préprocesseur global
 preprocessor = ColumnTransformer(
     transformers=[
         ('num', numeric_transformer, numeric_features),
         ('cat', categorical_transformer, categorical_features)
-    ])
+    ]
+)
 
-model_pipeline = Pipeline(steps=[('preprocessor', preprocessor),
-                                 ('regressor', keras.Sequential([
-                                     keras.layers.Dense(64, activation='relu', input_shape=[len(df.columns)]),
-                                     keras.layers.Dense(64, activation='relu'),
-                                     keras.layers.Dense(1)
-                                 ]))
-                                ])
+# Création du pipeline avec un modèle de forêt aléatoire
+model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('regressor', RandomForestRegressor(random_state=42))
+])
 
+# Recherche des hyperparamètres optimaux
+param_grid = {
+    'regressor__n_estimators': [100, 200, 300],
+    'regressor__max_depth': [None, 10, 20, 30],
+    'regressor__min_samples_split': [2, 5, 10],
+    'regressor__min_samples_leaf': [1, 2, 4]
+}
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+grid_search = GridSearchCV(model, param_grid, cv=5, scoring='neg_mean_absolute_error', n_jobs=-1)
+grid_search.fit(X_train, y_train)
 
+# Meilleur modèle
+best_model = grid_search.best_estimator_
 
-model_pipeline['regressor'].compile(optimizer='adam',
-                                    loss='mean_squared_error',
-                                    metrics=['mean_absolute_error'])
+# Prédictions sur l'ensemble de test
+y_pred = best_model.predict(X_test)
 
-model_pipeline.fit(X_train, y_train, epochs=10, validation_split=0.1)
-
-
-model_loss, model_mae = model_pipeline.evaluate(X_test, y_test)
-print("Perte moyenne sur les tests:", model_loss)
-print("Erreur absolue moyenne sur les tests:", model_mae)
-
-
-# input_data = {
-#     'date_transaction': ['2021-06-01'],
-#     'Departement': ['Paris'],
-#     'id_ville': [1],
-#     'Ville': ['Paris'],
-#     'code_postal': [75001],
-#     'Adresse': ['123 rue de exemple'],
-#     'Type_batiment': ['Appartement'],
-#     'n_pieces': [3],
-#     'surface_habitable': [75]
-# }
-# input_df = pd.DataFrame(input_data)
-# predicted_price = model_pipeline.predict(input_df)
-# print("Prix prédit:", predicted_price)
+# Évaluation du modèle
+mae = mean_absolute_error(y_test, y_pred)
+print(f'Mean Absolute Error: {mae:.2f} €')
