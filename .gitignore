@@ -1,2 +1,5 @@
 DataSets/** 
 apartment_price_pipeline.pkl
+
+# Ignore python venv
+data/**

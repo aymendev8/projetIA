@@ -2,8 +2,8 @@ import pandas as pd
 import joblib
 
 # Chargement du pipeline complet
-pipeline = joblib.load('./apartment_price_pipeline.pkl')
-df = pd.read_csv('DataSets/transactions2022.csv')
+pipeline = joblib.load('./model/apartment_price_pipeline.pkl')
+df = pd.read_csv('DataSets/transactions2020.csv')
 
 X = df.drop(columns=['prix'])
 y = df['prix']
@@ -24,9 +24,9 @@ def predict_price(new_data):
 
 # Exemple d'utilisation
 new_apartment = {
-    'ville': 'NICE',
-    'surface_habitable': 89,
-    'n_pieces': 4,
+    'ville': 'PARIS 16',
+    'surface_habitable': 320,
+    'n_pieces': 6,
     'type_batiment': 'Appartement'
 }
 

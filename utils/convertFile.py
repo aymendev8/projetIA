@@ -27,4 +27,4 @@ df = df.reset_index(drop=True)
 
 print(f"nb lignes: {df.shape[0]}")
 
-df.to_csv('transactions2020.csv', index=False)
+df.to_csv('./DataSets/transactions2020.csv', index=False)
