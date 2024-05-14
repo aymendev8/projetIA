@@ -24,10 +24,10 @@ def predict_price(new_data):
 
 # Exemple d'utilisation
 new_apartment = {
-    'ville': 'PARIS 16',
-    'surface_habitable': 320,
-    'n_pieces': 6,
-    'type_batiment': 'Appartement'
+    'ville': 'ANGERS',
+    'surface_habitable': 208,
+    'n_pieces': 10,
+    'type_batiment': 'Maison'
 }
 
 predicted_price = predict_price(new_apartment)
