@@ -1,12 +1,4 @@
-import {
-  Button,
-  Card,
-  Form,
-  FormProps,
-  InputNumber,
-  Select,
-  Spin,
-} from "antd";
+import { Button, Card, Form, FormProps, InputNumber, Select, Spin } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import "./App.css";
 import { useState } from "react";
@@ -22,7 +14,7 @@ type PredictProps = {
 const big_cities = [
   { label: "Paris", value: "PARIS" },
   { label: "Marseille", value: "MARSEILLE" },
-  { label: "Lyon", value: "LYON"},
+  { label: "Lyon", value: "LYON" },
   { label: "Toulouse", value: "TOULOUSE" },
   { label: "Nice", value: "NICE" },
   { label: "Nantes", value: "NANTES" },
@@ -182,22 +174,34 @@ function App() {
               <Select.Option value="Maison">Maison</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item wrapperCol={{
-            offset: 10,
-            span: 16,
-           }}>
+          <Form.Item
+            wrapperCol={{
+              offset: 10,
+              span: 16,
+            }}
+          >
             <Button
               type="primary"
               icon={<SearchOutlined />}
               htmlType="submit"
-              children="Estimer" 
+              children="Estimer"
             />
           </Form.Item>
         </Form>
       </section>
       <section>
         <Card title="Résultat" style={{ width: 300 }}>
-          {loading ? <Spin /> : <p>{prediction ? "Votre bien est estimé à " + prediction.split('.')[0] + '€ !' : 'Rentrer votre recherche'}</p>}
+          {loading ? (
+            <Spin />
+          ) : (
+            <p>
+              {prediction
+                ? "Votre bien est estimé à " +
+                  Math.round(+prediction).toLocaleString("fr-FR") +
+                  "€ !"
+                : "Rentrer votre recherche"}
+            </p>
+          )}
         </Card>
       </section>
     </>
